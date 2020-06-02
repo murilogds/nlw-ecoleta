@@ -16,9 +16,9 @@ class PointsController {
       uf,
       items
     } = request.body;
-  
-    const [id] = await trx('points').insert({
-      image: 'image-fake',
+
+    const point = {
+      image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60',
       name,
       email,
       whatsapp,
@@ -26,7 +26,9 @@ class PointsController {
       longitude,
       city,
       uf
-    });
+    }
+  
+    const [id] = await trx('points').insert(point);
   
     const pointItems = items.map((item_id: number) =>{
       return {
@@ -39,7 +41,10 @@ class PointsController {
 
     await trx.commit();
   
-    return response.json({success: true});
+    return response.json({
+      id,
+      ...point
+    });
   }
 
   async show(request: Request, response: Response){
