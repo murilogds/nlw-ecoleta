@@ -11,17 +11,17 @@ import './styles.css';
 
 import logo from '../../assets/logo.svg';
 
-interface Item{
+interface Item {
   id: number,
   title: string,
   image_url: string
 }
 
-interface IBGEUFResponse{
+interface IBGEUFResponse {
   sigla: string,
 }
 
-interface IBGECityResponse{
+interface IBGECityResponse {
   nome: string,
 }
 
@@ -32,8 +32,14 @@ const CreatePoint = () => {
   const [cities, setCities] = useState<string[]>([]);
   const [selectedUf, setSelectedUf] = useState('0');
   const [selectedCity, setSelectedCity] = useState('0');
-  const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0,0])
-  const [initialPosition, setInitialPosition] = useState<[number, number]>([0,0])
+  const [selectedPosition, setSelectedPosition] = useState<[number, number]>([0, 0])
+  const [initialPosition, setInitialPosition] = useState<[number, number]>([0, 0])
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    whatsapp: ''
+  });
 
   useEffect(() => {
     api.get('items').then(response => {
@@ -41,7 +47,7 @@ const CreatePoint = () => {
     })
   }, []);
 
-  useEffect(() =>{
+  useEffect(() => {
     navigator.geolocation.getCurrentPosition(position => {
       const { latitude, longitude } = position.coords;
 
@@ -59,7 +65,7 @@ const CreatePoint = () => {
   }, [])
 
   useEffect(() => {
-    if(selectedUf === '0'){
+    if (selectedUf === '0') {
       return;
     }
     axios
@@ -71,23 +77,43 @@ const CreatePoint = () => {
       });
   }, [selectedUf])
 
-  function handleSelectUf(event: ChangeEvent<HTMLSelectElement>){
+  function handleSelectUf(event: ChangeEvent<HTMLSelectElement>) {
     const uf = event.target.value;
 
     setSelectedUf(uf);
   }
 
-  function handleSelectCity(event: ChangeEvent<HTMLSelectElement>){
+  function handleSelectCity(event: ChangeEvent<HTMLSelectElement>) {
     const city = event.target.value;
 
     setSelectedCity(city);
   }
 
-  function handleMapClick(event: LeafletMouseEvent){
+  function handleMapClick(event: LeafletMouseEvent) {
     setSelectedPosition([
       event.latlng.lat,
       event.latlng.lng
     ]);
+  }
+
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target
+    setFormData({ ...formData, [name]: value })
+  }
+
+  function handleSelectItem(id: number) {
+    const alreadySelected = selectedItems.findIndex(item => item === id);
+
+    if(alreadySelected >= 0){
+      const filteredItems = selectedItems.filter(item => item !== id);
+
+      setSelectedItems(filteredItems);
+    }else{
+
+      setSelectedItems([...selectedItems, id]);
+    }
+
+    
   }
 
   return (
@@ -114,6 +140,7 @@ const CreatePoint = () => {
               type="text"
               name="name"
               id="name"
+              onChange={handleInputChange}
             />
           </div>
 
@@ -124,6 +151,7 @@ const CreatePoint = () => {
                 type="email"
                 name="email"
                 id="email"
+                onChange={handleInputChange}
               />
             </div>
             <div className="field">
@@ -132,6 +160,7 @@ const CreatePoint = () => {
                 type="text"
                 name="whatsapp"
                 id="whatsapp"
+                onChange={handleInputChange}
               />
             </div>
           </div>
@@ -182,7 +211,11 @@ const CreatePoint = () => {
 
           <ul className="items-grid">
             {items.map((item) => (
-              <li key={item.id}>
+              <li
+                key={item.id}
+                onClick={() => handleSelectItem(item.id)}
+                className={selectedItems.includes(item.id) ? 'selected' : ''}
+              >
                 <img src={item.image_url} alt={item.title} />
                 <span>{item.title}</span>
               </li>
