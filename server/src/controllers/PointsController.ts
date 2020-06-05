@@ -1,8 +1,8 @@
-import { Request, Response} from 'express';
+import { Request, Response } from 'express';
 import knex from '../database/connection';
 
 class PointsController {
-  async create(request: Request, response: Response){
+  async create(request: Request, response: Response) {
 
     const trx = await knex.transaction();
 
@@ -18,7 +18,7 @@ class PointsController {
     } = request.body;
 
     const point = {
-      image: 'https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60',
+      image: request.file.filename,
       name,
       email,
       whatsapp,
@@ -27,45 +27,54 @@ class PointsController {
       city,
       uf
     }
-  
+
     const [id] = await trx('points').insert(point);
-  
-    const pointItems = items.map((item_id: number) =>{
-      return {
-        item_id,
-        point_id: id
-      }
-    })
-  
+
+    const pointItems = items
+      .split(',')
+      .map((item: string) => Number(item.trim()))
+      .map((item_id: number) => {
+        return {
+          item_id,
+          point_id: id
+        }
+      });
+
     await trx('point_items').insert(pointItems);
 
     await trx.commit();
-  
+
     return response.json({
       id,
       ...point
     });
   }
 
-  async show(request: Request, response: Response){
+  async show(request: Request, response: Response) {
     const { id } = request.params;
 
     const point = await knex('points').where('id', id).first();
 
-    if(!point){
-      return response.status(400).json({message: "Point not found."})
+    if (!point) {
+      return response.status(400).json({ message: "Point not found." })
     }
 
     const items = await knex('items')
       .join('point_items', 'items.id', '=', 'point_items.item_id')
       .where('point_items.point_id', id);
 
-    
-    return response.json({point, items});
-    
+
+    const serializedPoint = {
+      ...point,
+      image_url: `http://192.168.0.7:3333/uploads/${point.image}`,
+    };
+
+
+    return response.json({ point: serializedPoint, items });
+
   }
 
-  async index(request: Request, response: Response){
+  async index(request: Request, response: Response) {
     const { city, uf, items } = request.query;
     const parsedItems = String(items)
       .split(',')
@@ -80,7 +89,14 @@ class PointsController {
       .select('points.*');
     console.log(city, uf, items);
 
-    return response.json(points)
+    const serializedPoints = points.map(point => {
+      return {
+        ...point,
+        image_url: `http://192.168.0.7:3333/uploads/${point.image}`,
+      };
+    });
+
+    return response.json(serializedPoints)
   }
 }
 
